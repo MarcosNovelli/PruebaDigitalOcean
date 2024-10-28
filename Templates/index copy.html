@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DCA Trading Bot Configuration</title>
+    <style>
+        body {
+            background-color: #121212;
+            color: #ffffff;
+            font-family: Arial, sans-serif;
+            font-size: 16px;
+            margin: 0;
+            padding: 20px;
+            justify-content: flex-start;
+            align-items: flex-start;
+            height: 100vh;
+            box-sizing: border-box;
+        }
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 20px;
+            max-width: 100%;
+            height: 100%;
+        }
+        .column {
+            display: grid;
+            gap: 20px;
+        }
+        .first-column {
+            grid-template-rows: 1fr 1.7fr;
+        }
+
+        .box {
+            border-radius: 5px;
+            padding: 15px;
+            background-color: #1e1e1e;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            box-sizing: border-box;
+        }
+        .box h2 {
+            margin-top: 0;
+            font-size: 20px;
+        }
+        .dca-form {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 5px;
+        }
+        .form-group {
+            margin: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 3px;
+            color: #ffffff;
+            font-size: 17px;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 3px;
+            background-color: #2c2c2c;
+            color: #ffffff;
+            font-size: 14px;
+        }
+        .form-group input:read-only {
+            background-color: #1e1e1e;
+        }
+        .form-group input:focus {
+            outline: none;
+            background-color: #3d3d3d;
+        }
+        .btn {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 3px;
+            background-color: #007bff;
+            color: #ffffff;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px 0;
+        }
+        .btn:hover {
+            background-color: #0056b3;
+        }
+        .btn-danger {
+            background-color: #dc3545;
+        }
+        .btn-danger:hover {
+            background-color: #c82333;
+        }
+        .btn-container {
+            display: flex;
+            gap: 10px;
+        }
+        pre {
+            white-space: pre-wrap;
+            background-color: #1e1e1e;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 0px;
+        }
+        .scrollable-box {
+            max-height: 450px;
+            overflow-y: auto;
+        }
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+        ::-webkit-scrollbar-track {
+            box-shadow: inset 0 0 5px grey;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #0056b3;
+            border-radius: 10px;
+        }
+        .message-box {
+            padding: 10px;
+            border-radius: 5px;
+            background-color: #1e1e1e;
+            color: #ffffff;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            font-family: monospace;
+            font-size: 14px;
+            max-height: 120px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="column first-column">
+            <form id="accountForm" action="/api" method="post" onsubmit="return validateAccountForm()">
+                <div class="box">
+                    <h2>Configuración API</h2>
+                    <div class="form-group {% if api_key %}box-api-configured{% endif %}">
+                        <label for="api-key">Binance API Key</label>
+                        <input type="text" id="api-key" name="api-key" placeholder="Enter your Binance API key" value="{{ api_key }}" {% if api_key %}readonly{% endif %}>
+                    </div>
+                    <div class="form-group">
+                        <label for="api-secret">Binance API Secret</label>
+                        <input type="text" id="api-secret" name="api-secret" placeholder="Enter your Binance API secret" value="{{ api_secret }}" {% if api_secret %}readonly{% endif %}>
+                    </div>
+                    {% if not api_key and not api_secret %}
+                    <button type="submit" class="btn" name="action" value="saveAPI">Save API Configuration</button>
+                    {% else %}
+                    <button type="submit" class="btn btn-danger" name="action" value="deleteAPI">Delete API Configuration</button>
+                    {% endif %}
+                </div>
+            </form>
+
+            <div class="box scrollable-box">
+                <h2>Pares Corriendo</h2>
+                <table>
+                    {% for bot in runningBots %}
+                    <tr>
+                        <td>
+                            <pre>{{ bot }}</pre>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </table>
+            </div>
+        </div>
+
+        <div class="column second-column">
+            <div class="box">
+                <h2>Configuración DCA</h2>
+                <form id="dcaForm" action="/dcaBot" method="post" onsubmit="return validateBotForm()">
+                    <div class="dca-form">
+                        <div class="form-group">
+                            <label for="pair">Par de Compra</label>
+                            <input type="text" id="pair" name="pair" placeholder="e.g., BTCUSDT" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="timeBetweenRounds">Tiempo de espera entre rondas</label>
+                            <input type="number" id="timeBetweenRounds" name="timeBetweenRounds">
+                        </div>
+                        <div class="form-group">
+                            <label for="price-deviation">Desviacion del Precio (%)</label>
+                            <input type="number" id="price-deviation" name="price-deviation" step="0.01">
+                        </div>
+                        <div class="form-group">
+                            <label for="take-profit">Take Profit (%)</label>
+                            <input type="number" id="take-profit" name="take-profit" step="0.01">
+                        </div>
+                        <div class="form-group">
+                            <label for="trailing-stop-loss">Trailing Stop Loss (%)</label>
+                            <input type="number" id="trailing-stop-loss" name="trailing-stop-loss" step="0.01" min="0.01">
+                        </div>
+                        <div class="form-group">
+                            <label for="base-order-size">Tamaño Orden Base</label>
+                            <input type="number" id="base-order-size" name="base-order-size" step="0.01">
+                        </div>
+                        <div class="form-group">
+                            <label for="dca-order-size">Tamaño Orden DCA</label>
+                            <input type="number" id="dca-order-size" name="dca-order-size" step="0.01">
+                        </div>
+                        <div class="form-group">
+                            <label for="max-dca-orders">Max. Cantidad de Ordenes DCA</label>
+                            <input type="number" id="max-dca-orders" name="max-dca-orders">
+                        </div>
+                        <div class="form-group">
+                            <label for="dca-order-multiplier">Multiplicador Orden DCA</label>
+                            <input type="number" id="dca-order-multiplier" name="dca-order-multiplier" step="0.01">
+                        </div>
+                    </div>
+                    <div class="btn-container">
+                        <button type="submit" class="btn" name="action" value="runBot">Correr Estrategia</button>
+                        <button type="submit" class="btn btn-danger" name="action" value="stopBotClose">Detener Estrategia - Cerrar Posicion</button>
+                        <button type="submit" class="btn btn-danger" name="action" value="stopBotMaintain">Detener Estrategia - Mantener Posicion</button>
+                    </div>
+                </form>
+            </div>
+            
+            <pre id="messageBox" class="box message-box"></pre>
+            <!-- <pre> {{ terminal }} </pre> -->
+        </div>
+    </div>
+
+    <script>
+        function validateAccountForm() {
+            var key = document.getElementById("api-key").value;
+            var secret = document.getElementById("api-secret").value;
+            var action = document.querySelector('button[type="submit"]:hover').value;
+
+            if (action === "saveAPI") {
+                if (key === "" || secret === "") {
+                    alert("Please fill out all fields to add an account.");
+                    return false;
+                }
+            } else if (action === "deleteAPI") {
+                if (!confirm("Are you sure you want to delete the API configuration?")) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        function validateBotForm() {
+            var pair = document.getElementById("pair").value;
+            var time = document.getElementById("utc-time").value;
+            var priceDeviation = document.getElementById("price-deviation").value;
+            var takeProfit = document.getElementById("take-profit").value;
+            var trailingStop = document.getElementById("trailing-stop-loss").value;
+            var baseOrderSize = document.getElementById("base-order-size").value;
+            var dcaOrderSize = document.getElementById("dca-order-size").value;
+            var maxDcaOrders = document.getElementById("max-dca-orders").value;
+            var orderMultiplier = document.getElementById("dca-order-multiplier").value;
+
+            var action = document.querySelector('button[type="submit"]:hover').value;
+
+            if (action === "runBot") {
+                if (pair === "" || time === "" || priceDeviation === "" || takeProfit === "" || trailingStop === "" || baseOrderSize === "" || dcaOrderSize === "" || maxDcaOrders === "" || orderMultiplier === "") {
+                    alert("Please fill out all required fields to run the bot.");
+                    return false;
+                }
+            } else if (action === "deleteBot") {
+                if (pair === "") {
+                    alert("Please provide the pair parameter to delete the bot.");
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        function updateMessageBox(message) {
+            var messageBox = document.getElementById("messageBox");
+            messageBox.textContent = message;
+
+            if (document.activeElement !== messageBox) {
+                messageBox.scrollTop = messageBox.scrollHeight;
+            }
+        }
+
+        function fetchMessage() {
+            fetch('/get_message')
+                .then(response => response.json())
+                .then(data => {
+                    updateMessageBox(data.message);
+                });
+        }
+
+        document.addEventListener("DOMContentLoaded", function() {
+            setInterval(fetchMessage, 1000); // Fetch message every 5 seconds
+        });
+    </script>
+</body>
+</html>
