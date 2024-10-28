@@ -10,7 +10,7 @@ def index():
     if request.method == "POST":
         name = request.form.get("name")
         message = f"Hello, {name}!"
-    return render_template("index copy.html", message=message)
+    return render_template("index.html", message=message)
 
 if __name__ == "__main__":
     app.run(debug=True)
